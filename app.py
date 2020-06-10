@@ -1,6 +1,5 @@
 import os
 import torch
-import pyaudio
 from flask import Flask, request
 from werkzeug import secure_filename
 from e2e.modules.global_ import label_to_string, id2char, EOS_token
@@ -13,7 +12,6 @@ IMAGE_SRC = "https://user-images.githubusercontent.com/42150335/83557467-ae62598
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-audio = pyaudio.PyAudio()
 
 
 def allowed_file(filename):
