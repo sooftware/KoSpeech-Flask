@@ -8,7 +8,34 @@ from parse import load_audio, parse_audio, SAMPLE_RATE
 UPLOAD_FOLDER = './audio/'
 ALLOWED_EXTENSIONS = {'pcm'}
 DEVICE = 'cpu'
-IMAGE_SRC = "https://user-images.githubusercontent.com/42150335/83557467-ae625980-a54c-11ea-97d0-071f355a9743.png"
+BACKGROUND_SRC = "https://actionpower.kr/wp-content/uploads/2017/04/asasasa.jpg"
+
+HOMEPAGE_HTML = """
+<!doctype html>
+<head>
+<title>KoSpeech</title>
+<style>
+body {
+background-image: url("https://user-images.githubusercontent.com/42150335/84467650-bdb57580-acb7-11ea-817f-4122acadd1d9.png");
+background-size: cover;
+background-position: centoer;
+}
+</style>
+</head>
+
+<body>
+
+</body>
+<span style=" font: italic bold 4em/1em Times New Roman, serif ;">
+<h1>KoSpeech</h1>
+</span>
+<div>
+<form action="" method=post enctype=multipart/form-data>
+ <p><input type=file name=file value=Choose>
+    <input type=submit value=Predict>
+</form>
+</div> 
+"""
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -37,46 +64,35 @@ def index():
             hypothesis = logit.max(-1)[1]
             prediction = label_to_string(hypothesis, id2char, EOS_token)
             return """
-                   <!doctype html>
-                   <title>Team Kai.Lib</title>
-                    
-                   <div style="TEXT-ALIGN: center">
-                   <h1>A.I Dictation Solution</h1>
-                   </div> 
-                    
-                   <div style="TEXT-ALIGN: center">
-                   <img src=%s>
-                   </div> 
-                    
-                   <div style="TEXT-ALIGN: center">
-                   <form action="" method=post enctype=multipart/form-data>
-                     <p><input type=file name=file value=Choose>
-                        <input type=submit value=Predict>
-                   </form>
-                   </div> 
-                   <p style="TEXT-ALIGN: center">
-                   %s
-                   </p>
-                   """ % (IMAGE_SRC, str(prediction[0]))
-    return """
-    <!doctype html>
-    <title>Team Kai.Lib</title>
-    
-    <div style="TEXT-ALIGN: center">
-    <h1>A.I Dictation Solution</h1>
-    </div> 
-    
-    <div style="TEXT-ALIGN: center">
-    <img src=%s>
-    </div> 
-    
-    <div style="TEXT-ALIGN: center">
-    <form action="" method=post enctype=multipart/form-data>
-      <p><input type=file name=file value=Choose>
-         <input type=submit value=Predict>
-    </form>
-    </div> 
-    """ % IMAGE_SRC
+                <!doctype html>
+                <head>
+                <title>KoSpeech</title>
+                <style>
+                body {
+                background-image: url("https://user-images.githubusercontent.com/42150335/84467650-bdb57580-acb7-11ea-817f-4122acadd1d9.png");
+                background-size: cover;
+                background-position: centoer;
+                }
+                </style>
+                </head>
+                
+                <body>
+                
+                </body>
+                <span style=" font: italic bold 4em/1em Times New Roman, serif ;">
+                <h1>KoSpeech</h1>
+                </span>
+                <div>
+                <form action="" method=post enctype=multipart/form-data>
+                 <p><input type=file name=file value=Choose>
+                    <input type=submit value=Predict>
+                </form>
+                </div> 
+                <p style>
+                %s
+                </p>
+               """ % str(prediction[0])
+    return HOMEPAGE_HTML
 
 
 if __name__ == "__main__":
