@@ -1,0 +1,15 @@
+{% extends 'homepage_new.html'%}
+
+{% block content %}
+<div>
+    {% if True %}
+    <audio controls autoplay>
+        <source src="/static/audio/uploaded_audio.wav">
+    </audio>
+    <p>
+        {{ prediction }}
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
+

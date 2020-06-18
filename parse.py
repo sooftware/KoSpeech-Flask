@@ -1,9 +1,8 @@
 import torch
 import librosa
-import sys
-import wave
 import numpy as np
 from core import split
+
 
 SAMPLE_RATE = 16000
 N_MELS = 80
@@ -36,7 +35,6 @@ def parse_audio(audio_path):
     spectrogram = torch.FloatTensor(np.ascontiguousarray(np.swapaxes(spectrogram, 0, 1)))
 
     return spectrogram, sound
-
 
 def instancewise_standardization(spectrogram):
     mean = np.mean(spectrogram)

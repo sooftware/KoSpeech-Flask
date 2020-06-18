@@ -1,98 +1,84 @@
 import os
+import os.path
 import torch
-from flask import Flask, request
-from werkzeug import secure_filename
-from e2e.modules.global_ import label_to_string, id2char, EOS_token
+import librosa
+import soundfile as sf
+from flask import Flask, request, render_template, send_from_directory
+from werkzeug.utils import secure_filename
+from kospeech.utils import label_to_string, id2char, EOS_token
 from parse import load_audio, parse_audio, SAMPLE_RATE
+from converter import Pcm2Wav, Wav2Pcm
 
-UPLOAD_FOLDER = './audio/'
-ALLOWED_EXTENSIONS = {'pcm'}
+
+UPLOAD_FOLDER = './uploaded_audio/'
+
+ALLOWED_EXTENSIONS = {'pcm', 'wav'}
 DEVICE = 'cpu'
 BACKGROUND_SRC = "https://actionpower.kr/wp-content/uploads/2017/04/asasasa.jpg"
 
-HOMEPAGE_HTML = """
-<!doctype html>
-<head>
-<title>KoSpeech</title>
-<style>
-body {
-background-image: url("https://user-images.githubusercontent.com/42150335/84467650-bdb57580-acb7-11ea-817f-4122acadd1d9.png");
-background-size: cover;
-background-position: centoer;
-}
-</style>
-</head>
-
-<body>
-
-</body>
-<span style=" font: italic bold 4em/1em Times New Roman, serif ;">
-<h1>KoSpeech</h1>
-</span>
-<div>
-<form action="" method=post enctype=multipart/form-data>
- <p><input type=file name=file value=Choose>
-    <input type=submit value=Predict>
-</form>
-</div> 
-"""
-
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['AUDIO_FOLDER'] = './audio_to_play/'
+AUDIO_TO_PLAY_PATH = os.path.join(app.config['AUDIO_FOLDER'],'uploaded_audio.wav')
+
+model = torch.load('./weight_file/model.pt', map_location=DEVICE).module
+model.listener.device = DEVICE
+model.speller.device = DEVICE
+model.eval()
+
+pcm2wav = Pcm2Wav()
+wav2pcm = Wav2Pcm()
+
+
+def local2pcm(wave_path, pcm_path):
+    y, sr = librosa.load(wave_path, sr=32000)
+    y = librosa.to_mono(y)
+    y = librosa.resample(y, 32000, 16000)
+
+    sf.write(wave_path, y, 16000, format='wav', endian='little', subtype='PCM_16')
+    wav2pcm(wave_path, pcm_path)
 
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS, filename.split('.')[1]
 
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
+        if os.path.isfile(AUDIO_TO_PLAY_PATH):
+            os.remove(AUDIO_TO_PLAY_PATH)
+
         file = request.files['file']
-        if file and allowed_file(file.filename):
+        uploaded_file_path = UPLOAD_FOLDER + file.filename
+        is_valid, extension = allowed_file(file.filename)
+        if is_valid:
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-            spectrogram, sound = parse_audio('./audio/%s' % filename)
+            if extension == 'pcm':
+                pcm2wav(uploaded_file_path, AUDIO_TO_PLAY_PATH)
+            elif extension == 'wav':
+                local2pcm(uploaded_file_path, AUDIO_TO_PLAY_PATH)
+
+            spectrogram, sound = parse_audio('./uploaded_audio/%s' % filename)
+
             model = torch.load('./weight_file/model.pt', map_location=DEVICE).module
             model.listener.device = DEVICE
             model.speller.device = DEVICE
+            model.eval()
 
-            output = model(spectrogram.unsqueeze(0), torch.IntTensor([len(spectrogram)]), teacher_forcing_ratio=0.0)
+            output = model(spectrogram.unsqueeze(0), torch.IntTensor([len(spectrogram)]), teacher_forcing_ratio=0.0)[0]
             logit = torch.stack(output, dim=1).to(DEVICE)
             hypothesis = logit.max(-1)[1]
             prediction = label_to_string(hypothesis, id2char, EOS_token)
-            return """
-                <!doctype html>
-                <head>
-                <title>KoSpeech</title>
-                <style>
-                body {
-                background-image: url("https://user-images.githubusercontent.com/42150335/84467650-bdb57580-acb7-11ea-817f-4122acadd1d9.png");
-                background-size: cover;
-                background-position: centoer;
-                }
-                </style>
-                </head>
-                
-                <body>
-                
-                </body>
-                <span style=" font: italic bold 4em/1em Times New Roman, serif ;">
-                <h1>KoSpeech</h1>
-                </span>
-                <div>
-                <form action="" method=post enctype=multipart/form-data>
-                 <p><input type=file name=file value=Choose>
-                    <input type=submit value=Predict>
-                </form>
-                </div> 
-                <p style>
-                %s
-                </p>
-               """ % str(prediction[0])
-    return HOMEPAGE_HTML
+            os.remove(uploaded_file_path)
+            #os.remove(AUDIO_TO_PLAY_PATH)
+            return render_template('uploaded_test.html',
+                                   audio_path='.'+AUDIO_TO_PLAY_PATH,
+                                   prediction=str(prediction[0]))
+    return render_template('homepage_new.html')
 
 
 if __name__ == "__main__":
