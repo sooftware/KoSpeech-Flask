@@ -2,12 +2,34 @@ import torch
 import librosa
 import numpy as np
 from core import split
+from const import *
 
-
-SAMPLE_RATE = 16000
-N_MELS = 80
-N_FFT = 320
-HOP_LENGTH = 160
+DEVICES = {
+    '조명': LIGHT,
+    '불': LIGHT,
+    '공기청정기': AIRCONDITIONER,
+    '공기 청정기': AIRCONDITIONER,
+    '에어컨디셔너': AIRCONDITIONER,
+    '에어컨디션어': AIRCONDITIONER,
+    '에어 컨디셔너': AIRCONDITIONER,
+    '에어 컨디션어': AIRCONDITIONER,
+    '먼지': AIRCONDITIONER,
+    'None': 9
+}
+OBJECTS = {
+    '거실': LIVING_ROOM_LIGHT,
+    '안방': INNER_ROOM_LIGHT,
+    '화장실': BATH_ROOM_LIGHT,
+    'None': 99
+}
+COMMANDS = {
+    '켜': ON,
+    '꺼': OFF,
+    '어때': STATUS,
+    '자동 모드': AUTO,
+    '자동모드': AUTO,
+    'None': 999
+}
 
 
 def load_audio(audio_path):
@@ -36,6 +58,7 @@ def parse_audio(audio_path):
 
     return spectrogram, sound
 
+
 def instancewise_standardization(spectrogram):
     mean = np.mean(spectrogram)
     std = np.std(spectrogram)
@@ -43,3 +66,38 @@ def instancewise_standardization(spectrogram):
     spectrogram /= std
     return spectrogram
 
+
+def milestone(sentence):
+    device, obj, command = None, None, None
+
+    for device in DEVICES.keys():
+        if device in sentence:
+            device = str(DEVICES[device])
+            break
+
+    if device is None:
+        device = str(DEVICES['None'])
+
+    for obj_ in OBJECTS.keys():
+        if obj_ in sentence:
+            obj = str(OBJECTS[obj_])
+            break
+
+    if obj is None:
+        obj = str(DEVICES['None'])
+
+    for command_ in COMMANDS.keys():
+        if command_ in sentence:
+            command = str(COMMANDS[command_])
+            break
+
+    if command is None:
+        command = str(COMMANDS['None'])
+
+    order = '%s%s%s' % (device, obj, command)
+
+    if '9' not in order:
+        return order
+
+    else:
+        return None
