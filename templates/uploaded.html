@@ -1,4 +1,4 @@
-{% extends 'homepage_new.html'%}
+{% extends 'homepage.html'%}
 
 {% block content %}
 <div>
@@ -6,9 +6,9 @@
     <audio controls autoplay>
         <source src="/static/audio/uploaded_audio.wav">
     </audio>
-    <p>
-        {{ prediction }}
-    </p>
+    <font size="8em">
+        <h1>{{ prediction }}</h1>
+    </font>
     {% endif %}
 </div>
 {% endblock %}

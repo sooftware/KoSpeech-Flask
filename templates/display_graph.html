@@ -1,0 +1,19 @@
+{% extends 'homepage.html'%}
+
+{% block content %}
+<div>
+    {% if True %}
+    <audio controls autoplay>
+        <source src="/static/audio/uploaded_audio.wav">
+    </audio>
+    <font size="8em">
+        <h1>{{ prediction }}</h1>
+    </font>
+    {% endif %}
+    <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/1085968/charts/1?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Power+ON+%2F+OFF&type=line"></iframe>
+    <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/1085968/charts/2?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Air+Purifier+Run+Time&type=line"></iframe>
+    <iframe width="450" height="260" style="border: 1px solid #cccccc;" src="https://thingspeak.com/channels/1085968/charts/3?bgcolor=%23ffffff&color=%23d62020&dynamic=true&results=60&title=Dust+Particle+Count&type=line"></iframe>
+
+</div>
+{% endblock %}
+

@@ -2,6 +2,7 @@ import wave
 
 
 class Pcm2Wav(object):
+    """ Convert pcm to wav format """
     def __init__(self):
         self.sample_rate = 16000
         self.channels = 1
@@ -21,7 +22,7 @@ class Pcm2Wav(object):
 
 
 class Wav2Pcm(object):
-
+    """ Convert wav to pcm format """
     def __call__(self, wav_path, pcm_path):
         sample_Rate, bit_rate, pcmdata = self.convert(wav_path)
 
@@ -73,9 +74,3 @@ class Wav2Pcm(object):
 
         wav_file.close()
         return sample_rate, bit_rate, data
-
-
-if __name__=='__main__':
-    pass
-    #w2p = Wav2Pcm()
-    #w2p(wav_path='./media/wav_file.wav' , pcm_path='./media/pcm_file.pcm')
