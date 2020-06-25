@@ -11,7 +11,7 @@ from modules.const import *
 # COMMANDS is three digit
 # Ex) 거실에 조명 불 좀 꺼줘
 # => LIGHT + LIVING_ROOM_LIGHT + OFF => 017100
-
+hop_length = int(16000 * 0.001 * 10)
 DEVICES = {
     '조명': LIGHT,
     '불': LIGHT,
@@ -66,22 +66,23 @@ def load_audio(audio_path):
 
 
 def parse_audio(audio_path):
-    sound = load_audio(audio_path)
+    signal = load_audio(audio_path)
 
-    melspectrogram = librosa.feature.melspectrogram(sound, SAMPLE_RATE, n_mels=N_MELS, n_fft=N_FFT, hop_length=HOP_LENGTH)
-    melspectrogram = librosa.amplitude_to_db(melspectrogram, ref=np.max)
+    spectrogram = torch.stft(
+        torch.FloatTensor(signal),
+        N_FFT,
+        hop_length=hop_length,
+        win_length=N_FFT,
+        window=torch.hamming_window(N_FFT),
+        center=False,
+        normalized=False,
+        onesided=True
+    )
+    spectrogram = (spectrogram[:, :, 0].pow(2) + spectrogram[:, :, 1].pow(2)).pow(0.5)
+    spectrogram = np.log1p(spectrogram.numpy())
+    spectrogram -= spectrogram.mean()
 
-    # Instance-wise standardization
-    mean = np.mean(melspectrogram)
-    std = np.std(melspectrogram)
-    melspectrogram -= mean
-    melspectrogram /= std
-
-    # Input reverse
-    melspectrogram = melspectrogram[:, ::-1]
-    melspectrogram = torch.FloatTensor(np.ascontiguousarray(np.swapaxes(melspectrogram, 0, 1)))
-
-    return melspectrogram
+    return torch.FloatTensor(spectrogram).transpose(0, 1)
 
 
 def milestone(sentence):

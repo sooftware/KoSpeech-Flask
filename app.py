@@ -18,7 +18,7 @@ AUDIO_TO_PLAY_PATH = os.path.join(app.config['AUDIO_FOLDER'], 'uploaded_audio.wa
 show_graph = False
 
 # Load weight file
-model = torch.load('./weight_file/model.pt', map_location=DEVICE).module
+model = torch.load('./weight_file/KsponSpeech_87.44%.pt', map_location=DEVICE).module
 model.listener.device = DEVICE
 model.speller.device = DEVICE
 model.eval()
