@@ -11,9 +11,15 @@ from kospeech.utils import char2id, EOS_token, SOS_token
 
 def build_model(opt, device):
     """ Various model dispatcher function. """
-    listener = build_listener(input_size=opt.n_mels, hidden_dim=opt.hidden_dim, dropout_p=opt.dropout,
+    if opt.feature == 'mel':
+        input_size = opt.n_mels
+    else:
+        input_size = 161  # spectrogram size
+
+    listener = build_listener(input_size=input_size, hidden_dim=opt.hidden_dim, dropout_p=opt.dropout,
                               num_layers=opt.listener_layer_size, bidirectional=opt.use_bidirectional,
-                              extractor=opt.extractor, activation=opt.activation, rnn_type=opt.rnn_type, device=device)
+                              extractor=opt.extractor, activation=opt.activation,
+                              rnn_type=opt.rnn_type, device=device, mask_conv=opt.mask_conv)
     speller = build_speller(num_classes=len(char2id), max_len=opt.max_len, sos_id=SOS_token, eos_id=EOS_token,
                             hidden_dim=opt.hidden_dim << (1 if opt.use_bidirectional else 0),
                             num_layers=opt.speller_layer_size, rnn_type=opt.rnn_type, dropout_p=opt.dropout,
@@ -40,7 +46,8 @@ def build_las(listener, speller, device, init_uniform=True):
     return model
 
 
-def build_listener(input_size, hidden_dim, dropout_p, num_layers, bidirectional, rnn_type, extractor, activation, device):
+def build_listener(input_size, hidden_dim, dropout_p, num_layers, bidirectional,
+                   rnn_type, extractor, activation, device, mask_conv):
     """ Various encoder dispatcher function. """
     if not isinstance(input_size, int):
         raise ParameterError("input_size should be inteager type")
@@ -62,7 +69,7 @@ def build_listener(input_size, hidden_dim, dropout_p, num_layers, bidirectional,
         raise ParameterError("Unsupported RNN Cell: {0}".format(rnn_type))
 
     return Listener(input_size=input_size, hidden_dim=hidden_dim,
-                    dropout_p=dropout_p, num_layers=num_layers,
+                    dropout_p=dropout_p, num_layers=num_layers, mask_conv=mask_conv,
                     bidirectional=bidirectional, rnn_type=rnn_type,
                     extractor=extractor, device=device, activation=activation)
 
@@ -127,7 +134,11 @@ def load_test_model(opt, device):
 
 
 def load_language_model(path, device):
-    model = torch.load(path, map_location=lambda storage, loc: storage).module.to(device)
+    model = torch.load(path, map_location=lambda storage, loc: storage).to(device)
+
+    if isinstance(model, nn.DataParallel):
+        model = model.module
+
     model.device = device
 
     return model

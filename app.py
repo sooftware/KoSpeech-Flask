@@ -73,12 +73,13 @@ def index():
             output = model(spectrogram.unsqueeze(0), torch.IntTensor([len(spectrogram)]), teacher_forcing_ratio=0.0)[0]
             logit = torch.stack(output, dim=1).to(DEVICE)
             y_hat = logit.max(-1)[1]
-            prediction = label_to_string(y_hat, id2char, EOS_token)
+            prediction = str(label_to_string(y_hat, id2char, EOS_token)[0])
+
             os.remove(uploaded_file_path)
 
             return render_template('uploaded.html',
                                    audio_path='.%s' % AUDIO_TO_PLAY_PATH,
-                                   prediction=str(prediction[0]))
+                                   prediction=prediction)
     # Root page
     return render_template('homepage.html')
 

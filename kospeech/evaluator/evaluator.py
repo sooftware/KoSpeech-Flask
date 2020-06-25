@@ -1,7 +1,7 @@
 import queue
 import torch
 from kospeech.utils import logger
-from kospeech.data.data_loader import AudioLoader
+from kospeech.data.data_loader import AudioDataLoader
 from kospeech.decode.search import GreedySearch, BeamSearch
 
 
@@ -27,7 +27,7 @@ class Evaluator(object):
         if decode == 'greedy':
             self.decoder = GreedySearch()
         elif decode == 'beam':
-            assert beam_size > 1, "beam_size should be greater than 1."
+            assert beam_size > 1, "beam_size should be greater than 1. You can choose `greedy` search"
             self.decoder = BeamSearch(beam_size)
         else:
             raise ValueError("Unsupported decode : {0}".format(decode))
@@ -37,7 +37,7 @@ class Evaluator(object):
         logger.info('evaluate() start')
 
         eval_queue = queue.Queue(self.num_workers << 1)
-        eval_loader = AudioLoader(self.dataset, eval_queue, self.batch_size, 0)
+        eval_loader = AudioDataLoader(self.dataset, eval_queue, self.batch_size, 0)
         eval_loader.start()
 
         cer = self.decoder.search(model, eval_queue, self.device, self.print_every)

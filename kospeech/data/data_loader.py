@@ -5,11 +5,11 @@ import torch
 import random
 from torch.utils.data import Dataset
 from kospeech.data.label_loader import load_targets
-from kospeech.data.preprocess.parser import SpeechParser
+from kospeech.data.preprocess.parser import SpectrogramParser
 from kospeech.utils import logger, PAD_token, SOS_token, EOS_token
 
 
-class SpeechDataset(Dataset, SpeechParser):
+class SpectrogramDataset(Dataset, SpectrogramParser):
     """
     Dataset for mel-spectrogram & transcript matching
 
@@ -25,14 +25,15 @@ class SpeechDataset(Dataset, SpeechParser):
     """
     def __init__(self, audio_paths, script_paths, sos_id, eos_id, target_dict, opt, spec_augment=False,
                  noise_augment=False, dataset_path=None, noiseset_size=0, noise_level=0.7):
-        super(SpeechDataset, self).__init__(feature_extract_by=opt.feature_extract_by, sample_rate=opt.sample_rate,
-                                            n_mels=opt.n_mels, window_size=opt.window_size, stride=opt.stride,
-                                            del_silence=opt.del_silence, input_reverse=opt.input_reverse,
-                                            normalize=opt.normalize, target_dict=target_dict,
-                                            time_mask_para=opt.time_mask_para, freq_mask_para=opt.freq_mask_para,
-                                            time_mask_num=opt.time_mask_num, freq_mask_num=opt.freq_mask_num,
-                                            sos_id=sos_id, eos_id=eos_id, dataset_path=dataset_path,
-                                            noiseset_size=noiseset_size, noise_level=noise_level, noise_augment=noise_augment)
+        super(SpectrogramDataset, self).__init__(feature_extract_by=opt.feature_extract_by, sample_rate=opt.sample_rate,
+                                                 n_mels=opt.n_mels, window_size=opt.window_size, stride=opt.stride,
+                                                 del_silence=opt.del_silence, input_reverse=opt.input_reverse,
+                                                 normalize=opt.normalize, target_dict=target_dict,
+                                                 time_mask_para=opt.time_mask_para, freq_mask_para=opt.freq_mask_para,
+                                                 time_mask_num=opt.time_mask_num, freq_mask_num=opt.freq_mask_num,
+                                                 sos_id=sos_id, eos_id=eos_id, dataset_path=dataset_path,
+                                                 noiseset_size=noiseset_size, noise_level=noise_level,
+                                                 noise_augment=noise_augment, feature=opt.feature)
         self.audio_paths = list(audio_paths)
         self.script_paths = list(script_paths)
         self.augment_methods = [self.VANILLA] * len(self.audio_paths)
@@ -97,7 +98,7 @@ class SpeechDataset(Dataset, SpeechParser):
         return len(self.audio_paths)
 
 
-class AudioLoader(threading.Thread):
+class AudioDataLoader(threading.Thread):
     """
     Audio Data Loader
 
@@ -199,7 +200,7 @@ def _collate_fn(batch):
     return seqs, targets, seq_lengths, target_lengths
 
 
-class MultiAudioLoader(object):
+class MultiDataLoader(object):
     """
     Multi Data Loader using Threads.
 
@@ -217,7 +218,7 @@ class MultiAudioLoader(object):
         self.loader = list()
 
         for idx in range(self.num_workers):
-            self.loader.append(AudioLoader(self.dataset_list[idx], self.queue, self.batch_size, idx))
+            self.loader.append(AudioDataLoader(self.dataset_list[idx], self.queue, self.batch_size, idx))
 
     def start(self):
         """ Run threads """
@@ -274,7 +275,7 @@ def split_dataset(opt, audio_paths, script_paths):
         train_end_idx = min(train_num_per_worker * (idx + 1), train_num)
 
         trainset_list.append(
-            SpeechDataset(
+            SpectrogramDataset(
                 audio_paths[train_begin_idx:train_end_idx],
                 script_paths[train_begin_idx:train_end_idx],
                 SOS_token, EOS_token,
@@ -288,7 +289,7 @@ def split_dataset(opt, audio_paths, script_paths):
             )
         )
 
-    validset = SpeechDataset(
+    validset = SpectrogramDataset(
         audio_paths=audio_paths[train_num:],
         script_paths=script_paths[train_num:],
         sos_id=SOS_token, eos_id=EOS_token,

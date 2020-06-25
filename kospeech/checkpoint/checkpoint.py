@@ -28,9 +28,9 @@ class Checkpoint(object):
         MODEL_NAME (str): name of the file storing model
     """
 
-    CHECKPOINT_DIR_NAME = 'checkpoints'
+    CHECKPOINT_DIR_NAME = 'checkpoints2'
     TRAINER_STATE_NAME = 'trainer_states.pt'
-    SAVE_PATH = './data'
+    SAVE_PATH = '/data3/AIHub/AIHub/AIHub/'
     MODEL_NAME = 'model.pt'
 
     def __init__(self, model=None, optimizer=None, criterion=None, trainset_list=None, validset=None, epoch=None):

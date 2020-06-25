@@ -33,6 +33,7 @@ class BeamSearchDecoder(nn.Module):
         self.hidden_dim = decoder.hidden_dim
         self.forward_step = decoder.forward_step
         self.validate_args = decoder.validate_args
+        self.decoder = decoder
         self.pos_index = None
         self.beam_size = beam_size
         self.sos_id = decoder.sos_id
@@ -42,7 +43,7 @@ class BeamSearchDecoder(nn.Module):
         self.device = decoder.device
 
     def forward(self, input_var, encoder_outputs, teacher_forcing_ratio=0.0):
-        inputs, batch_size, max_length = self.validate_args(input_var, encoder_outputs, 0.0)
+        inputs, batch_size, max_length = self.validate_args(input_var, encoder_outputs, 0.0, language_model=None)
         self.pos_index = (torch.LongTensor(range(batch_size)) * self.beam_size).view(-1, 1).to(self.device)
 
         hidden, attn = None, None

@@ -2,13 +2,12 @@ import math
 import time
 import torch
 import queue
-import math
 import pandas as pd
 from kospeech.checkpoint.checkpoint import Checkpoint
 from kospeech.optim.lr_scheduler import ExponentialDecayLR
 from kospeech.metrics import CharacterErrorRate
 from kospeech.utils import EOS_token, logger, id2char
-from kospeech.data.data_loader import MultiAudioLoader, AudioLoader
+from kospeech.data.data_loader import MultiDataLoader, AudioDataLoader
 
 
 class SupervisedTrainer(object):
@@ -84,17 +83,6 @@ class SupervisedTrainer(object):
                 epoch_time_step += len(trainset)
             epoch_time_step = math.ceil(epoch_time_step / batch_size)
 
-            epoch_time_step = 0
-            for trainset in self.trainset_list:
-                epoch_time_step += len(trainset)
-
-            epoch_time_step = math.ceil(epoch_time_step / batch_size)
-
-            for g in self.optimizer.optimizer.param_groups:
-                g['lr'] = 1e-04
-
-            print("Learning rate : %f", self.optimizer.get_lr())
-
         logger.info('start')
         train_begin_time = time.time()
 
@@ -104,7 +92,7 @@ class SupervisedTrainer(object):
                 trainset.shuffle()
 
             # Training
-            train_loader = MultiAudioLoader(self.trainset_list, train_queue, batch_size, self.num_workers)
+            train_loader = MultiDataLoader(self.trainset_list, train_queue, batch_size, self.num_workers)
             train_loader.start()
             train_loss, train_cer = self.train_epoches(model, epoch, epoch_time_step, train_begin_time,
                                                        train_queue, teacher_forcing_ratio)
@@ -129,15 +117,15 @@ class SupervisedTrainer(object):
 
             # Validation
             valid_queue = queue.Queue(self.num_workers << 1)
-            valid_loader = AudioLoader(self.validset, valid_queue, batch_size, 0)
+            valid_loader = AudioDataLoader(self.validset, valid_queue, batch_size, 0)
             valid_loader.start()
 
             valid_cer = self.validate(model, valid_queue)
             valid_loader.join()
 
-            logger.info('Epoch %d (Validate) Loss %0.4f CER %0.4f' % (epoch, 0.0, valid_cer))
+            logger.info('Epoch %d (Validate) Loss %0.4f CER %0.4f' % (epoch, 1.0, valid_cer))
             self._save_epoch_result(train_result=[self.train_dict, train_loss, train_cer],
-                                    valid_result=[self.valid_dict, 0.0, valid_cer])
+                                    valid_result=[self.valid_dict, 1.0, valid_cer])
             logger.info('Epoch %d Training result saved as a csv file complete !!' % epoch)
 
         return model
@@ -184,7 +172,8 @@ class SupervisedTrainer(object):
             targets = scripts[:, 1:]
 
             model.module.flatten_parameters()
-            output = model(inputs, input_lengths, scripts, teacher_forcing_ratio=teacher_forcing_ratio)[0]
+            output = model(inputs=inputs, input_lengths=input_lengths,
+                           targets=scripts, teacher_forcing_ratio=teacher_forcing_ratio)[0]
 
             logit = torch.stack(output, dim=1).to(self.device)
             hypothesis = logit.max(-1)[1]
@@ -259,14 +248,12 @@ class SupervisedTrainer(object):
                 targets = scripts[:, 1:]
 
                 model.module.flatten_parameters()
-                output = model(inputs, input_lengths, teacher_forcing_ratio=0.0)[0]
+                output = model(inputs=inputs, input_lengths=input_lengths, teacher_forcing_ratio=0.0)[0]
 
                 logit = torch.stack(output, dim=1).to(self.device)
                 hypothesis = logit.max(-1)[1]
 
                 cer = self.metric(targets, hypothesis)
-
-                del inputs, input_lengths, scripts, targets, output, logit, hypothesis
 
         logger.info('validate() completed')
         return cer
@@ -285,8 +272,8 @@ class SupervisedTrainer(object):
         train_df = pd.DataFrame(train_dict)
         valid_df = pd.DataFrame(valid_dict)
 
-        train_df.to_csv(self.TRAIN_RESULT_PATH, encoding="cp949", index=False)
-        valid_df.to_csv(self.VALID_RESULT_PATH, encoding="cp949", index=False)
+        train_df.to_csv(SupervisedTrainer.TRAIN_RESULT_PATH, encoding="cp949", index=False)
+        valid_df.to_csv(SupervisedTrainer.VALID_RESULT_PATH, encoding="cp949", index=False)
 
     def _save_step_result(self, train_step_result, loss, cer):
         """ Save result of --save_result_every step """
