@@ -21,6 +21,7 @@ show_graph = False
 model = torch.load('./weight_file/KsponSpeech_87.44%.pt', map_location=DEVICE).module
 model.listener.device = DEVICE
 model.speller.device = DEVICE
+model.speller.max_length = 150
 model.eval()
 
 # Create object

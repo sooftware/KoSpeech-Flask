@@ -62,7 +62,7 @@ class Speller(BaseRNN):
 
     def forward_step(self, input_var, hidden, encoder_outputs, attn):
         batch_size, output_lengths = input_var.size(0), input_var.size(1)
-        input_var.cuda()
+
         embedded = self.embedding(input_var).to(self.device)
         embedded = self.input_dropout(embedded)
 
@@ -138,9 +138,6 @@ class Speller(BaseRNN):
         if inputs is None:  # inference
             inputs = torch.LongTensor([self.sos_id] * batch_size).view(batch_size, 1)
             max_length = self.max_length
-
-            if torch.cuda.is_available():
-                inputs = inputs.cuda()
 
             if teacher_forcing_ratio > 0:
                 raise ValueError("Teacher forcing has to be disabled (set 0) when no inputs is provided.")
